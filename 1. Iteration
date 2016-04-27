@@ -1,0 +1,147 @@
+mb = 12000/3600;  %kg/s
+Tbin = 95+273;
+Tbout = 35+273;
+
+Cpb = 2793.5;   
+rhob = 769.2888;
+mub = 0.0010;                    %material properties @ Tfilm
+kb = 0.1449;
+
+Q = mb*Cpb*(Tbin-Tbout);        %duty
+
+Twin = 15+273;
+Twout = 30+273;
+
+Cpw = 4187.112; 
+rhow = 997.64475;
+muw = 0.00096804;                 %material properties @ Tfilm
+kw = 0.6025;
+
+mw = Q/(Cpw*(Twout-Twin));        %water flowrate
+
+Tlm = ((Tbin-Twout)-(Tbout-Twin))/log((Tbin-Twout)/(Tbout-Twin)); %unCORRECTED
+F = 0.875;
+cTlm = F*Tlm;
+
+UA = Q/(F*Tlm);          % UA is constant
+
+
+T=zeros();               
+for i = 0:5:500
+
+Uo0=250+i;                     % Trial value of U; 250<U<750
+Ao=UA/Uo0;
+
+di = 0.0158;                   % design criteria
+do = 0.019;                    % design criteria bc of suggestion in C&R
+L =  12*0.3048;                % design criteria largest standard tube length <6m
+
+n = 1.1*Ao/(pi*do*L);
+np = n/4;                      % design criteria
+
+ut = 4*mw/(rhow*pi*di^2*np);
+
+Ret = (rhow*ut*di)/muw;        
+Prw = Cpw*muw/kw;
+dhi = di;
+
+Nut = 0.023*Ret^0.8*Prw^0.33;      %assume viscosity ratio is unity
+hi = (kw/dhi)*Nut;                
+
+
+hiw = 4200*(1.35+0.02*(Twave-273))*ut^0.8/(di*1000)^0.2;     %water specific correlation
+
+Db = do*(n/0.175)^(1/2.285);        %triangular, 4 pass
+%Db = do*(n/0.0743)^(1/2.499);       %triangular, 6 pass
+%Db = do*(n/0.0365)^(1/2.675);       %triangular, 8 pass
+%Db = do*(n/0.158)^(1/2.263);        %square, 4 pass
+%Db = do*(n/0.0402)^(1/2.617);       %square, 6 pass
+%Db = do*(n/0.0331)^(1/2.643);       %square, 8 pass
+
+Bc = 0.029;                         %split ring floating head
+Ds = Db+Bc; 
+
+pt = 1.25*do;         %pitch
+
+lb = 0.3*Ds;          %baffle spacing
+
+As = (pt-do)*Ds*lb/pt;
+
+us = mb/(As*rhob);
+
+%dhs = (4*pt^2-pi*do^2)/(pi*do);        %for square pitch
+dhs = (1.10/do)*(pt^2-0.917*do^2);     %for triangular pitch
+
+Res = us*dhs*rhob/mub;
+Prb = Cpb*mub/kb;
+
+
+if (2E+03 < Res) && (Res < 3E+03);
+    jh = 0.019-3E-06*Res;
+else if Res < 5E+03;
+        jh = 0.013-1E-06*Res;
+    else if Res < 9E+03;
+            jh = 0.0105-5E-07*Res;
+        else if Res < 1E+04;
+                jh = 0.0059;                  %correlations for jh based on Fig 5.2
+            end
+        end
+    end
+end
+          
+
+
+Nus = jh*Res*Prb^(1/3)       %assume unity for viscosity correction factor
+
+ho = (kb/dhs)*Nus;
+
+
+Rfb = 1/5000;
+Rfw = 1/4500;           %3000-6000; 
+
+kwall = 16;             %for stainless steel
+Rw = do*log(do/di)/(2*kwall);
+
+Uo = 1/((do/di)*((1/hiw)+Rfw)+1/ho+Rfb+Rw);
+
+
+%pressure calcs
+
+if (1E+04 < Res) && (Res < 2E+04);
+    jft = 5.8E-03-9E-08*Res;
+else if Res < 5E+04;
+        jft = 4.6E-03-3E-08*Res;   
+    else if Res < 6E+04;
+            jft = 3.35E-03-5E-09*Res;
+        else if Res < 8E+04;
+                jft = 3.65E-03-1E-08*Res;                %correlations for jft based on Fig 6.2
+            end
+        end
+    end
+end
+
+Pt = 0.5*(n/np)*(8*jft*(L/di)+2.5)*rhow*ut^2;        %+2.5 from C&R p597, assuming unity for viscosity correction
+
+if (2E+03 < Res) && (Res < 7E+03);
+    jfs = 0.066-2E-06*Res;
+else if Res < 1E+04;
+        jfs = 0.05;                                 %correlations for jfs based on Fig 6.2
+    end
+end
+
+Ps = 0.5*8*jfs*(Ds/dhs)*(L/lb)*rhob*us^2;           %assuming unity for viscosity correction
+
+
+ldratio = L/Ds;
+
+T((1+i/5),1) = Uo0;
+T((1+i/5),2) = Uo;
+T((1+i/5),3) = Pt;
+T((1+i/5),4) = Ps;          
+T((1+i/5),5) = ldratio;
+T((1+i/5),6) = us;
+T((1+i/5),7) = ut;
+T((1+i/5),8) = Ret;                 %to verify j factors fall within Re values used in correlations
+T((1+i/5),9) = Res;
+
+end
