@@ -101,7 +101,7 @@ else if Res < 5E+04;
     else if Res < 6E+04;
             jft = 3.35E-03-5E-09*Res;
         else if Res < 8E+04;
-                jft = 3.65E-03-1E-08*Res;                %correlations for jft based on Fig 6.2
+                jft = 3.65E-03-1E-08*Res;                %correlations for jft based on Fig 6.1
             end
         end
     end
